@@ -13,6 +13,7 @@ local function SwitchToTab(tabID)
     end
 end
 
+
 local function AddTab(id, name, menu, content)
     local Btn = vgui.Create("DButton", menu)
     Btn:SetText(name)
@@ -34,9 +35,11 @@ local function AddTab(id, name, menu, content)
     return TabPanel
 end
 
+
 function MasterPanel()
     if IsValid(MasterFrame) then
-        MasterFrame:MakePopup()
+        gui.EnableScreenClicker(true)
+        MasterFrame.ClickerEnabled = true
         return
     end
 
@@ -47,7 +50,52 @@ function MasterPanel()
     MasterFrame:SetSize(800, 500)
     MasterFrame:SetTitle("Меню мастера")
     MasterFrame:Center()
-    MasterFrame:MakePopup()
+    MasterFrame:SetMouseInputEnabled(true)
+    MasterFrame:SetKeyboardInputEnabled(false)
+    gui.EnableScreenClicker(true)
+    MasterFrame.ClickerEnabled = true
+
+    local function IsMenuPanel(pnl)
+        if not IsValid(pnl) then return false end
+        if pnl == MasterFrame then return true end
+
+        local parent = pnl:GetParent()
+        while IsValid(parent) do
+            if parent == MasterFrame then return true end
+            parent = parent:GetParent()
+        end
+
+        local className = tostring(pnl.ClassName or "")
+        if string.find(string.lower(className), "menu") then return true end
+
+        return false
+    end
+
+    MasterFrame.PrevLeftPressed = false
+    local baseThink = MasterFrame.Think
+
+    function MasterFrame:Think()
+        if baseThink then baseThink(self) end
+        local isLeftPressed = input.IsMouseDown(MOUSE_LEFT)
+
+        if isLeftPressed and not self.PrevLeftPressed then
+            if self.ClickerEnabled then
+                local hovered = vgui.GetHoveredPanel()
+
+                if not IsMenuPanel(hovered) then
+                    gui.EnableScreenClicker(false)
+                    self.ClickerEnabled = false
+                end
+            end
+        end
+
+        self.PrevLeftPressed = isLeftPressed
+    end
+
+    function MasterFrame:OnClose()
+        gui.EnableScreenClicker(false)
+        self.ClickerEnabled = false
+    end
 
     local LeftMenu = vgui.Create("DPanel", MasterFrame)
     LeftMenu:SetWidth(150)
@@ -76,11 +124,15 @@ function MasterPanel()
     EntityTable:AddColumn("Наименование")
     EntityTable:AddColumn("Тип")
     EntityTable:AddColumn("ID")
+
     function EntityTable:OnRowRightClick(lineID, line)
         local Properties = DermaMenu()
         Properties:AddOption("Телепортироваться к сущности", function()
-            local name = line:GetValue(1)
-            RunConsoleCommand("ulx", "goto", name)
+            if line.TargetEntIndex then
+                net.Start("MasterMenu_Teleport")
+                net.WriteInt(line.TargetEntIndex, 32)
+                net.SendToServer()
+            end
         end):SetIcon("icon16/arrow_right.png")
         Properties:Open()
     end
@@ -88,28 +140,32 @@ function MasterPanel()
     EntityTable:Clear()
     local function ReloadEntityTable()
         EntityTable:Clear()
+
         for _, ply in ipairs(player.GetAll()) do
             if IsValid(ply) then
                 local steamID = ply:SteamID()
                 local name = ply:Nick()
                 local entType = "Player"
-                EntityTable:AddLine(name, entType, steamID)
+
+                local line = EntityTable:AddLine(name, entType, steamID)
+                line.TargetEntIndex = ply:EntIndex()
             end
         end
 
         local statusEffects = ents.FindByClass("dnd_status_effects")
-
         for _, ent in ipairs(statusEffects) do
             if IsValid(ent) then
                 local name = ent:GetDSE_EntityName()
 
                 if not name or name == "" then
-                    name = "Безымянный статус-эффект"
+                    name = "Безымянный статус–эффект"
                 end
 
                 local entType = "NPC"
                 local entID = ent:EntIndex()
-                EntityTable:AddLine(name, entType, tostring(entID))
+
+                local line = EntityTable:AddLine(name, entType, tostring(entID))
+                line.TargetEntIndex = entID
             end
         end
     end
@@ -124,11 +180,8 @@ function MasterPanel()
         ReloadEntityTable()
     end
 
-    local DHori = vgui.Create("DHorizontalDivider", TabOchered)
-    DHori:SetPos(0, 200)
-
-    -- Начачальная надпись
-    local StartSign = AddTab("test", "Начачальная надпись", LeftMenu, ContentArea)
+    -- Начальная надпись
+    local StartSign = AddTab("Signs", "Начальная надпись", LeftMenu, ContentArea)
     local CreateSing = vgui.Create("DButton", StartSign)
     CreateSing:SetText("Создать надпись")
     CreateSing:SetSize(100, 30)
@@ -139,9 +192,35 @@ function MasterPanel()
         net.SendToServer()
     end
 
+    -- Команды
+    local Commands = AddTab("Cmnds", "Команды", LeftMenu, ContentArea)
+    local List = vgui.Create("DListLayout", Commands)
+    List:SetPos(20, 20)
+    List:SetSize(300, 400)
+
+    local PlyCollision = vgui.Create("DCheckBoxLabel")
+    PlyCollision:SetText("Столкновение между игроками")
+    PlyCollision:SetSize(200, 30)
+    List:Add(PlyCollision)
+
+    local AnotherCheckbox = vgui.Create("DCheckBoxLabel")
+    AnotherCheckbox:SetText("Другая настройка")
+    AnotherCheckbox:SetSize(200, 30)
+    List:Add(AnotherCheckbox)
+    PlyCollision:SizeToContents()
 
     SwitchToTab("ochered")
 end
+
+hook.Add("Think", "MasterMenu_RestoreCursor", function()
+    if IsValid(MasterFrame) and not MasterFrame.ClickerEnabled then
+        if input.IsKeyDown(KEY_C) then
+            gui.EnableScreenClicker(true)
+            MasterFrame.ClickerEnabled = true
+        end
+    end
+end)
+
 
 local button_name = "AdventureMode:DesktopWindows"
 
@@ -152,6 +231,7 @@ list.Set("DesktopWindows", button_name, {
         MasterPanel()
     end
 })
+
 
 hook.Add("ContextMenuOpened", button_name, function()
     ---@type Panel
