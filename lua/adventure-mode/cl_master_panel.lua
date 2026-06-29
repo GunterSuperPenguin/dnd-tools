@@ -119,7 +119,7 @@ function MasterPanel()
     Label1:SizeToContents()
 
     local EntityTable = vgui.Create("DListView", TabOchered)
-    EntityTable:SetSize(500, 200)
+    EntityTable:SetSize(500, 100)
     EntityTable:SetPos(20, 40)
     EntityTable:AddColumn("Наименование")
     EntityTable:AddColumn("Тип")
@@ -170,15 +170,101 @@ function MasterPanel()
         end
     end
     ReloadEntityTable()
+    hook.Add("OnEntityCreated", "AutoReloadEntityTable", function(ent)
+        if IsValid(ent) and (ent:IsPlayer() or ent:GetClass() == "dnd_status_effects") then
+            timer.Simple(0.2, function()
+                ReloadEntityTable()
+            end)
+        end
+    end)
+    hook.Add("EntityRemoved", "AutoReloadEntityTableRemove", function(ent)
+        if IsValid(ent) and (ent:IsPlayer() or ent:GetClass() == "dnd_status_effects") then
+            timer.Simple(0.1, function()
+                ReloadEntityTable()
+            end)
+        end
+    end)
 
     local ReloadButton = vgui.Create("DButton", TabOchered)
     ReloadButton:SetText("Обновить")
-    ReloadButton:SetSize(100, 30)
+    ReloadButton:SetSize(150, 50)
     ReloadButton:SetPos(525, 40)
     ReloadButton:SizeToContents()
     ReloadButton.DoClick = function()
         ReloadEntityTable()
     end
+
+    local LabelQueue = vgui.Create("DLabel", TabOchered)
+    LabelQueue:SetText("Очередь")
+    LabelQueue:SetPos(20, 150)
+    LabelQueue:SizeToContents()
+
+    local QueueListScroll = vgui.Create("DScrollPanel", TabOchered)
+    QueueListScroll:SetSize(500, 150)
+    QueueListScroll:SetPos(20, 170)
+
+    local QueueList = vgui.Create("DListLayout", QueueListScroll)
+    QueueList:Dock(FILL)
+    QueueList:MakeDroppable("QueueSortableName", true)
+
+    function QueueList:DropAction(options)
+        return "move"
+    end
+
+    local function AddQueueRow(name, typeText, id)
+        local row = QueueList:Add("DPanel")
+        row:SetHeight(30)
+        row:DockMargin(0, 0, 0, 2)
+        row:Droppable("QueueSortableName")
+
+        local col1 = vgui.Create("DLabel", row)
+        col1:SetText(name)
+        col1:SetPos(10, 5)
+        col1:SetSize(200, 20)
+        col1:SetTextColor(Color(0, 0, 0))
+
+        local col2 = vgui.Create("DLabel", row)
+        col2:SetText(typeText)
+        col2:SetPos(220, 5)
+        col2:SetSize(150, 20)
+        col2:SetTextColor(Color(0, 0, 0))
+
+        local col3 = vgui.Create("DLabel", row)
+        col3:SetText(id)
+        col3:SetPos(380, 5)
+        col3:SetSize(100, 20)
+        col3:SetTextColor(Color(0, 0, 0))
+
+        row.Data = { name = name, type = typeText, id = id }
+
+        function row:DoRightClick()
+            local Menu = vgui.Create("DMenu")
+
+
+            local deleteOption = Menu:AddOption("Удалить", function()
+                if IsValid(row) then
+                    row:Remove()
+                    QueueList:InvalidateLayout()
+                end
+            end)
+            deleteOption:SetIcon("icon16/delete.png")
+            Menu:Open()
+        end
+    end
+
+
+    -- Тест
+    AddQueueRow("Предмет 1", "Оружие", "101")
+    AddQueueRow("Предмет 2", "Патроны", "102")
+    AddQueueRow("Предмет 3", "Аптечка", "103")
+    AddQueueRow("Предмет 4", "Аптечка", "103")
+    AddQueueRow("Предмет 5", "Аптечка", "105")
+    AddQueueRow("Предмет 6", "Аптечка", "106")
+    AddQueueRow("Предмет 7", "Аптечка", "107")
+
+
+
+
 
     -- Начальная надпись
     local StartSign = AddTab("Signs", "Начальная надпись", LeftMenu, ContentArea)
