@@ -1,5 +1,3 @@
-CreateConVar("dndt_adventure", 0, FCVAR_ARCHIVE)
-
 if SERVER then
     local subText = {
         "Это история вашей смерти.",
