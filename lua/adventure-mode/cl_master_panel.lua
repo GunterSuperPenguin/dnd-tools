@@ -35,6 +35,7 @@ local function AddTab(id, name, menu, content)
     return TabPanel
 end
 
+QueueListTable = QueueListTable or {}
 
 function MasterPanel()
     if IsValid(MasterFrame) then
@@ -112,7 +113,6 @@ function MasterPanel()
     end
 
     -- Очередь
-    local QueueListTable = {}
     local TabOchered = AddTab("ochered", "Очередь", LeftMenu, ContentArea)
     local Label1 = vgui.Create("DLabel", TabOchered)
     Label1:SetText("Сущности")
@@ -124,16 +124,36 @@ function MasterPanel()
     LabelQueue:SetPos(20, 150)
     LabelQueue:SizeToContents()
 
+
     local QueueListScroll = vgui.Create("DScrollPanel", TabOchered)
     QueueListScroll:SetSize(500, 150)
     QueueListScroll:SetPos(20, 170)
 
     local QueueList = vgui.Create("DListLayout", QueueListScroll)
-    QueueList:Dock(FILL)
+    QueueList:Dock(TOP)
     QueueList:MakeDroppable("QueueSortableName", true)
 
     function QueueList:DropAction(options)
         return "move"
+    end
+
+    local function SyncQueueTable()
+        if not IsValid(QueueList) then return end
+        QueueListTable = {}
+
+        for _, row in ipairs(QueueList:GetChildren()) do
+            if IsValid(row) and row.Data then
+                table.insert(QueueListTable, {
+                    name = row.Data.name,
+                    type = row.Data.type,
+                    id = row.Data.id
+                })
+            end
+        end
+    end
+
+    function QueueList:OnModified()
+        SyncQueueTable()
     end
 
     local function AddQueueRow(name, typeText, id)
@@ -189,8 +209,12 @@ function MasterPanel()
                 local deleteOption = Menu:AddOption("Удалить", function()
                     if IsValid(row) then
                         row:Remove()
-                        QueueList:InvalidateLayout()
-                        QueueListScroll:InvalidateLayout(true)
+                        timer.Simple(0, function()
+                            if IsValid(QueueList) then
+                                QueueList:InvalidateLayout()
+                                SyncQueueTable()
+                            end
+                        end)
                     end
                 end)
                 deleteOption:SetIcon("icon16/delete.png")
@@ -204,7 +228,15 @@ function MasterPanel()
             end
         end
 
-        QueueListScroll:InvalidateLayout(true)
+        timer.Simple(0, function()
+            if IsValid(QueueList) then
+                QueueList:InvalidateLayout(true)
+            end
+        end)
+    end
+
+    for _, item in ipairs(QueueListTable) do
+        AddQueueRow(item.name, item.type, item.id)
     end
 
     local EntityTable = vgui.Create("DListView", TabOchered)
@@ -218,7 +250,7 @@ function MasterPanel()
         local Properties = DermaMenu()
         Properties:AddOption("Телепортироваться к сущности", function()
             if line.TargetEntIndex then
-                net.Start("MasterMenu_Teleport")
+                net.Start("queue_teleport")
                 net.WriteInt(line.TargetEntIndex, 32)
                 net.SendToServer()
             end
@@ -229,22 +261,18 @@ function MasterPanel()
                 local id = line:GetValue(3)
                 local name = line:GetValue(1) or "Без названия"
                 local typeText = line:GetValue(2) or "Неизвестно"
-                local alreadyExists = false
-                for _, row in ipairs(QueueList:GetChildren()) do
-                    if IsValid(row) and row.Data and tostring(row.Data.name) == name and tostring(row.Data.id) == id then
-                        alreadyExists = true
-                        break
+                for _, item in ipairs(QueueListTable) do
+                    if tostring(item.name) == name or tostring(item.id) == id then
+                        surface.PlaySound("buttons/button8.wav")
+                        return
                     end
                 end
 
-                if alreadyExists then
-                    surface.PlaySound("buttons/button8.wav")
-                    return
-                end
 
-                QueueList:InvalidateLayout()
                 AddQueueRow(name, typeText, id)
+                QueueList:InvalidateLayout(true)
                 QueueListScroll:InvalidateLayout(true)
+                SyncQueueTable()
             end
         end):SetIcon("icon16/add.png")
         Properties:Open()
@@ -293,10 +321,10 @@ function MasterPanel()
                     ent:NetworkVarNotify("DSE_EntityName", function(entity, varName, oldVal, newVal)
                         if not IsValid(entity) then return end
 
-                        -- Проверяем, существует ли таблица меню
                         if IsValid(EntityTable) then
                             local targetID = entity:EntIndex()
                             local activeLine = EntityTable_Lines[targetID]
+
                             if IsValid(activeLine) then
                                 local displayName = newVal
                                 if not displayName or displayName == "" then
@@ -312,8 +340,9 @@ function MasterPanel()
         end
     end
 
-
     ReloadEntityTable()
+
+
     hook.Add("OnEntityCreated", "AutoReloadEntityTable", function(ent)
         if IsValid(ent) and (ent:IsPlayer() or ent:GetClass() == "dnd_status_effects") then
             timer.Simple(0.2, function()
@@ -321,6 +350,8 @@ function MasterPanel()
             end)
         end
     end)
+
+
     hook.Add("EntityRemoved", "AutoReloadEntityTableRemove", function(ent)
         if IsValid(ent) and (ent:IsPlayer() or ent:GetClass() == "dnd_status_effects") then
             timer.Simple(0.1, function()
@@ -328,8 +359,6 @@ function MasterPanel()
             end)
         end
     end)
-
-
 
 
     local ReloadButton = vgui.Create("DButton", TabOchered)
@@ -342,19 +371,19 @@ function MasterPanel()
     end
 
 
+    local ClearQueue = vgui.Create("DButton", TabOchered)
+    ClearQueue:SetText("Очистить всё")
+    ClearQueue:SetSize(150, 50)
+    ClearQueue:SetPos(525, 170)
+    ClearQueue:SizeToContents()
+    ClearQueue.DoClick = function()
+        if IsValid(QueueList) then
+            QueueList:Clear()
+            QueueList:InvalidateLayout(true)
+        end
 
-
-    -- Тест
-    -- AddQueueRow("Предмет 1", "Оружие", "101")
-    -- AddQueueRow("Предмет 2", "Патроны", "102")
-    -- AddQueueRow("Предмет 3", "Аптечка", "103")
-    -- AddQueueRow("Предмет 4", "Аптечка", "103")
-    -- AddQueueRow("Предмет 5", "Аптечка", "105")
-    -- AddQueueRow("Предмет 6", "Аптечка", "106")
-    -- AddQueueRow("Предмет 7", "Аптечка", "107")
-
-
-
+        QueueListTable = {}
+    end
 
 
     -- Начальная надпись
@@ -377,6 +406,7 @@ function MasterPanel()
 
     local PlyCollision = vgui.Create("DCheckBoxLabel")
     PlyCollision:SetText("Столкновение между игроками")
+    PlyCollision:SetConVar("dndt_playercollision")
     PlyCollision:SetSize(200, 30)
     List:Add(PlyCollision)
 

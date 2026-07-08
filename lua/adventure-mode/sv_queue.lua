@@ -1,6 +1,6 @@
-util.AddNetworkString("MasterMenu_Teleport")
+util.AddNetworkString("queue_teleport")
 
-net.Receive("MasterMenu_Teleport", function(len, ply)
+net.Receive("queue_teleport", function(len, ply)
     if not ply:IsListenServerHost() then return end
     local entIndex = net.ReadInt(32)
     local target = ents.GetByIndex(entIndex)
