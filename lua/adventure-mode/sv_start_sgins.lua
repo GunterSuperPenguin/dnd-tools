@@ -63,7 +63,7 @@ if SERVER then
         net.Broadcast()
     end
 
-    net.Receive("DND_RequestStartSign", function(len, ply)
+    net.Receive("DND_RequestStartSign", function(len, pl)
         StartSigns()
     end)
 end

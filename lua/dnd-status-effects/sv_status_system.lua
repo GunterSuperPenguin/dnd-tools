@@ -15,11 +15,11 @@ properties.Add("dnd_add_status_child", {
     Order = 10000,
     MenuIcon = "icon16/heart_add.png",
 
-    Filter = function(self, ent, ply)
+    Filter = function(self, ent, pl)
         if not IsValid(ent) or ent:IsPlayer() then return false end
         if ent:GetClass() == ENTITY_CLASS then return false end
         if IsValid(GetAttachedStatusEntity(ent)) then return false end
-        return gamemode.Call("CanProperty", ply, "dnd_add_status_child", ent)
+        return gamemode.Call("CanProperty", pl, "dnd_add_status_child", ent)
     end,
 
     Action = function(self, ent)
@@ -28,10 +28,10 @@ properties.Add("dnd_add_status_child", {
         self:MsgEnd()
     end,
 
-    Receive = function(self, length, ply)
+    Receive = function(self, length, pl)
         local ent = net.ReadEntity()
         if not IsValid(ent) then return end
-        if not gamemode.Call("CanProperty", ply, "dnd_add_status_child", ent) then return end
+        if not gamemode.Call("CanProperty", pl, "dnd_add_status_child", ent) then return end
 
         local statusEnt = ents.Create(ENTITY_CLASS)
         if not IsValid(statusEnt) then return end
@@ -55,11 +55,11 @@ properties.Add("dnd_edit_status_child", {
     Order = 10002,
     MenuIcon = "icon16/pencil.png",
 
-    Filter = function(self, ent, ply)
+    Filter = function(self, ent, pl)
         if not IsValid(ent) then return false end
         local statusEnt = GetAttachedStatusEntity(ent)
         if not IsValid(statusEnt) then return false end
-        return gamemode.Call("CanProperty", ply, "dnd_edit_status_child", ent)
+        return gamemode.Call("CanProperty", pl, "dnd_edit_status_child", ent)
     end,
 
     Action = function(self, ent)
@@ -78,10 +78,10 @@ properties.Add("dnd_remove_status_child", {
     Order = 10001,
     MenuIcon = "icon16/heart_delete.png",
 
-    Filter = function(self, ent, ply)
+    Filter = function(self, ent, pl)
         if not IsValid(ent) then return false end
         if not IsValid(GetAttachedStatusEntity(ent)) then return false end
-        return gamemode.Call("CanProperty", ply, "dnd_remove_status_child", ent)
+        return gamemode.Call("CanProperty", pl, "dnd_remove_status_child", ent)
     end,
 
     Action = function(self, ent)
@@ -89,7 +89,7 @@ properties.Add("dnd_remove_status_child", {
         net.WriteEntity(ent)
         self:MsgEnd()
     end,
-    Receive = function(self, length, ply)
+    Receive = function(self, length, pl)
         local ent = net.ReadEntity()
         if not IsValid(ent) then return end
 

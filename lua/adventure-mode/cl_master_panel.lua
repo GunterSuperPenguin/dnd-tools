@@ -289,14 +289,14 @@ function MasterPanel()
         EntityTable:Clear()
         EntityTable_Lines = {}
 
-        for _, ply in ipairs(player.GetAll()) do
-            if IsValid(ply) then
-                local steamID = ply:SteamID()
-                local name = ply:Nick()
+        for _, pl in ipairs(player.GetAll()) do
+            if IsValid(pl) then
+                local steamID = pl:SteamID()
+                local name = pl:Nick()
                 local entType = "Player"
 
                 local line = EntityTable:AddLine(name, entType, steamID)
-                line.TargetEntIndex = ply:EntIndex()
+                line.TargetEntIndex = pl:EntIndex()
             end
         end
 
@@ -404,17 +404,18 @@ function MasterPanel()
     List:SetPos(20, 20)
     List:SetSize(300, 400)
 
-    local PlyCollision = vgui.Create("DCheckBoxLabel")
-    PlyCollision:SetText("Столкновение между игроками")
-    PlyCollision:SetConVar("dndt_playercollision")
-    PlyCollision:SetSize(200, 30)
-    List:Add(PlyCollision)
+    local plCollision = vgui.Create("DCheckBoxLabel")
+    plCollision:SetText("Столкновение между игроками")
+    plCollision:SetConVar("dndt_playercollision")
+    plCollision:SetSize(200, 30)
+    List:Add(plCollision)
 
-    local AnotherCheckbox = vgui.Create("DCheckBoxLabel")
-    AnotherCheckbox:SetText("Другая настройка")
-    AnotherCheckbox:SetSize(200, 30)
-    List:Add(AnotherCheckbox)
-    PlyCollision:SizeToContents()
+    local FlashlightCheckbox = vgui.Create("DCheckBoxLabel")
+    FlashlightCheckbox:SetText("Работа фонарика у игроков")
+    FlashlightCheckbox:SetConVar("dndt_enableflashlight")
+    FlashlightCheckbox:SetSize(200, 30)
+    List:Add(FlashlightCheckbox)
+    FlashlightCheckbox:SizeToContents()
 
     SwitchToTab("ochered")
 end
