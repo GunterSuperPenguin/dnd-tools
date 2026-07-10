@@ -21,7 +21,7 @@ local function AddTab(id, name, menu, content)
     Btn:Dock(TOP)
     Btn:DockMargin(0, 0, 0, 2)
 
-    local TabPanel = vgui.Create("DPanel", content)
+    local TabPanel = vgui.Create("DScrollPanel", content)
     TabPanel:Dock(FILL)
     TabPanel:SetVisible(false)
     TabPanel.Paint = function() end
@@ -144,8 +144,8 @@ function MasterPanel()
 
     CreateConvarToggle("dndt_masterfullbright", "icon16/lightbulb_off.png", "icon16/lightbulb.png")
     CreateConvarToggle("dndt_masterfogskip", "icon16/weather_sun.png", "icon16/weather_clouds.png")
-    CreateConvarToggle("my_cvar_3", "icon16/lightbulb.png", "icon16/lightbulb_off.png")
-    CreateConvarToggle("my_cvar_4", "icon16/lock.png", "icon16/lock_open.png")
+    CreateConvarToggle("dndt_masterhaloplayers", "icon16/status_offline.png", "icon16/status_online.png")
+    CreateConvarToggle("dndt_masteralostatuseffects", "icon16/cup_delete.png", "icon16/cup_add.png")
 
     local ContentArea = vgui.Create("DPanel", MasterFrame)
     ContentArea:Dock(FILL)
@@ -488,7 +488,7 @@ function MasterPanel()
     fogstartvar:SetMinMax(0, 100)
     fogstartvar:Dock(TOP)
     fogstartvar:DockMargin(10, 10, 10, 0)
-    fogstartvar:SetText("Толщина тумана")
+    fogstartvar:SetText("Плотность тумана")
     fogstartvar:SetConVar("fpsfog_thickness")
 
     local fogcolorvar = FogTab:Add("DColorMixer")
@@ -501,6 +501,23 @@ function MasterPanel()
 
 
     -- Команды
+    -- Переменные и сетевой код (лучше разместить в начале файла или перед созданием меню)
+    local whitelist = whitelist or {}
+    local should_updade_list = false
+
+    net.Receive("Update cl whitelist", function()
+        whitelist = net.ReadTable(true)
+        should_updade_list = true
+    end)
+
+    hook.Add("OnSpawnMenuOpen", "Update list custom menu", function()
+        if UpdateWhitelist then UpdateWhitelist() end
+        timer.Simple(0.1, function()
+            should_updade_list = true
+        end)
+    end)
+
+    -- Твой существующий код создания вкладки
     local Commands = AddTab("Cmnds", "Команды", LeftMenu, ContentArea)
     local List = vgui.Create("DListLayout", Commands)
     List:SetPos(20, 20)
@@ -525,6 +542,187 @@ function MasterPanel()
     List:Add(FlashlightCheckbox)
     FlashlightCheckbox:SizeToContents()
 
+    -- =========================================================================
+    -- ИНТЕГРАЦИЯ SANDBOX RIGHTS
+    -- =========================================================================
+
+    -- Заголовок–надпись перед началом настроек
+    local srHeader = vgui.Create("DLabel")
+    srHeader:SetText("Sandbox Rights")
+    srHeader:SetFont("DermaDefaultBold")
+    srHeader:SetSize(200, 25)
+    List:Add(srHeader)
+
+    -- Основные настройки прав
+    local srActive = vgui.Create("DCheckBoxLabel")
+    srActive:SetText("Активировать ограничения")
+    srActive:SetConVar("sv_rights_active")
+    srActive:SetSize(200, 30)
+    List:Add(srActive)
+
+    local srSuperadmins = vgui.Create("DCheckBoxLabel")
+    srSuperadmins:SetText("superadmin")
+    srSuperadmins:SetConVar("sv_rights_superadmins")
+    srSuperadmins:SetSize(200, 30)
+    List:Add(srSuperadmins)
+
+    local srAdmins = vgui.Create("DCheckBoxLabel")
+    srAdmins:SetText("admin")
+    srAdmins:SetConVar("sv_rights_admins")
+    srAdmins:SetSize(200, 30)
+    List:Add(srAdmins)
+
+    local srOperators = vgui.Create("DCheckBoxLabel")
+    srOperators:SetText("operator")
+    srOperators:SetConVar("sv_rights_operators")
+    srOperators:SetSize(200, 30)
+    List:Add(srOperators)
+
+    -- Таблица вайтлиста (DListView)
+    local list = vgui.Create("DListView")
+    list:SetMultiSelect(false)
+    list:AddColumn("Никнейм")
+    list:AddColumn("SteamID")
+    list:SetSize(300, 150)
+    list.Think = function(self)
+        if should_updade_list then
+            should_updade_list = false
+            self:Clear()
+            for k, v in ipairs(whitelist) do
+                local ply = FindBySteamID and FindBySteamID(v) or player.GetBySteamID(v)
+                if ply and ply:IsValid() then
+                    self:AddLine(ply:Nick(), v)
+                else
+                    self:AddLine("", v)
+                end
+            end
+        end
+    end
+    list.OnRowRightClick = function(_, lineID)
+        local line = list:GetLine(lineID)
+        local steamid = line:GetValue(2)
+        net.Start("Delete from whitelist")
+        net.WriteString(steamid)
+        net.SendToServer()
+        list:ClearSelection()
+        timer.Simple(0.1, function()
+            should_updade_list = true
+            notification.AddLegacy(steamid .. ' был удален из вайтлиста', 1, 4)
+            surface.PlaySound("buttons/button15.wav")
+        end)
+    end
+    List:Add(list)
+
+    -- Выпадающий список для добавления игроков (DComboBox)
+    local but = vgui.Create("DComboBox")
+    but:SetValue("Выбрать игрока для вайтлиста")
+    but:SetSize(300, 30)
+    but:AddChoice('buf')
+    but.DoClick = function()
+        but.Choices = {}
+        but.Data = {}
+        but.ChoisesIcons = {}
+        but.Spacers = {}
+        but.selected = nil
+        for k, v in player.Iterator() do
+            if not v:IsListenServerHost() then
+                but:AddChoice(v:Nick(), v:SteamID())
+            end
+        end
+        if but:IsMenuOpen() then
+            return but:CloseMenu()
+        end
+        but:OpenMenu()
+    end
+    but.OnSelect = function(_, val, data)
+        local steamid = but.Data[val]
+        if table.HasValue(whitelist, steamid) or steamid == "BOT" then return end
+        net.Start("Add to whitelist")
+        net.WriteString(steamid)
+        net.SendToServer()
+        timer.Simple(0.1, function()
+            should_updade_list = true
+            notification.AddLegacy(data .. ' был добавлен в вайтлист', 2, 4)
+            surface.PlaySound("buttons/button15.wav")
+        end)
+        but:SetValue("Выбрать игрока для вайтлиста")
+    end
+    List:Add(but)
+
+    -- Настройки ограничения скорости
+    local maxVelocityEnabled = vgui.Create("DCheckBoxLabel")
+    maxVelocityEnabled:SetText("Ограничение максимальной скорости")
+    maxVelocityEnabled:SetConVar("sv_rights_maxvelocity_enabled")
+    maxVelocityEnabled:SetSize(200, 30)
+    List:Add(maxVelocityEnabled)
+
+    local maxVelocitySlider = vgui.Create("DNumSlider")
+    maxVelocitySlider:SetText("Макс. скорость")
+    maxVelocitySlider:SetMin(0)
+    maxVelocitySlider:SetMax(3500)
+    maxVelocitySlider:SetDecimals(0)
+    maxVelocitySlider:SetConVar("sv_rights_maxvelocity")
+    maxVelocitySlider:SetSize(300, 30)
+    List:Add(maxVelocitySlider)
+
+    -- Чекбоксы запретов (Блокировки)
+    local banSpawn = vgui.Create("DCheckBoxLabel")
+    banSpawn:SetText("Запретить спавн–меню")
+    banSpawn:SetConVar("sv_ban_spawn")
+    banSpawn:SetSize(200, 30)
+    List:Add(banSpawn)
+
+    local banCMenu = vgui.Create("DCheckBoxLabel")
+    banCMenu:SetText("Запретить контекстное меню")
+    banCMenu:SetConVar("sv_ban_cmenu")
+    banCMenu:SetSize(200, 30)
+    List:Add(banCMenu)
+
+    local banWeapons = vgui.Create("DCheckBoxLabel")
+    banWeapons:SetText("Запретить спавн оружия")
+    banWeapons:SetConVar("sv_ban_spawnweapon")
+    banWeapons:SetSize(200, 30)
+    List:Add(banWeapons)
+
+    local banPhys = vgui.Create("DCheckBoxLabel")
+    banPhys:SetText("Запретить Physgun")
+    banPhys:SetConVar("sv_ban_physgun")
+    banPhys:SetSize(200, 30)
+    List:Add(banPhys)
+
+    local banGrav = vgui.Create("DCheckBoxLabel")
+    banGrav:SetText("Запретить Гравипушку")
+    banGrav:SetConVar("sv_ban_gravgun")
+    banGrav:SetSize(200, 30)
+    List:Add(banGrav)
+
+    local banTool = vgui.Create("DCheckBoxLabel")
+    banTool:SetText("Запретить Toolgun")
+    banTool:SetConVar("sv_ban_toolgun")
+    banTool:SetSize(200, 30)
+    List:Add(banTool)
+
+    local banPickup = vgui.Create("DCheckBoxLabel")
+    banPickup:SetText("Запретить поднятие предметов")
+    banPickup:SetConVar("sv_ban_pickup")
+    banPickup:SetSize(200, 30)
+    List:Add(banPickup)
+
+    local banBreak = vgui.Create("DCheckBoxLabel")
+    banBreak:SetText("Запретить ломать предметы")
+    banBreak:SetConVar("sv_ban_break")
+    banBreak:SetSize(200, 30)
+    List:Add(banBreak)
+
+    local banNoclip = vgui.Create("DCheckBoxLabel")
+    banNoclip:SetText("Запретить Noclip")
+    banNoclip:SetConVar("sv_ban_noclip")
+    banNoclip:SetSize(200, 30)
+    List:Add(banNoclip)
+
+    -- Первичный запрос вайтлиста при открытии/инициализации
+    if UpdateWhitelist then UpdateWhitelist() end
+    should_updade_list = true
     SwitchToTab("ochered")
 end
 

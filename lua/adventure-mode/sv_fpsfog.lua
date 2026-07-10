@@ -7,6 +7,10 @@ local fpsfog_color_r = CreateConVar("fpsfog_color_r", 200, 8192 + 128, "red comp
 local fpsfog_color_g = CreateConVar("fpsfog_color_g", 200, 8192 + 128, "blue component", 0, 255)
 local fpsfog_color_b = CreateConVar("fpsfog_color_b", 200, 8192 + 128, "green component", 0, 255)
 
+local masterFogSkip = CreateConVar("dndt_masterfogskip", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включить/выключить туман для мастера.", 0, 1)
+
+
 util.AddNetworkString("fpsfog_3dsky")
 util.AddNetworkString("fpsfog_sendskycamera")
 
@@ -81,20 +85,4 @@ hook.Add("InitPostEntity", "fpsfog_postinit", function()
     end
 
     fpsfog_skycamera = ents.FindByClass("sky_camera")[1]
-end)
-
-
-hook.Add("Think", "fpsfog_farz", function()
-    local active = GetConVar("fpsfog_active"):GetFloat()
-    local fogend = GetConVar("fpsfog_distance"):GetFloat()
-
-    if active == 1 then
-        for k, v in pairs(ents.FindByClass("env_fog_controller")) do
-            v:SetKeyValue("farz", fogend + 250)
-        end
-    else
-        for k, v in pairs(ents.FindByClass("env_fog_controller")) do
-            v:SetKeyValue("farz", v.fpsfog_originalvalue or -1)
-        end
-    end
 end)

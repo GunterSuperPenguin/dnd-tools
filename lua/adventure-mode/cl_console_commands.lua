@@ -43,24 +43,55 @@ hook.Add("ShutDown", "DNDT_CleanUpFlashlight", function()
     end
 end)
 
--- hook.Add("PreDrawHalos", "MyCustomHaloHook", function()
---     -- Подсвечиваем всех игроков на сервере красным цветом
---     local players = player.GetAll()
---     local haloColor = Color(255, 79, 0)
-
---     (таблица_объектов, цвет, размытие_X, размытие_Y, проходы, аддитивный, видеть_сквозь_стены)
---     halo.Add(players, haloColor, 5, 5, 100, true, true)
--- end)
-
 local adventure_mode = CreateConVar("dndt_adventuremode", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
     "Включение (1) или отключение (0) режима приключений для игроков.", 0, 1)
+
+local masterHaloPlayers = CreateConVar("dndt_masterhaloplayers", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включение (1) или отключение (0) х-ray.", 0, 1)
+
+local masterHaloStatusEffects = CreateConVar("dndt_masteralostatuseffects", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включение (1) или отключение (0) х-ray.", 0, 1)
+
+local matGlow = Material("models/debug/debugwhite")
+
+hook.Add("PostDrawOpaqueRenderables", "XRayMasterSystem", function()
+    if masterHaloPlayers:GetInt() == 0 and masterHaloStatusEffects:GetInt() == 0 then return end
+
+    local ply = LocalPlayer()
+
+    render.SuppressEngineLighting(true)
+    render.MaterialOverride(matGlow)
+    cam.IgnoreZ(true)
+
+    if masterHaloPlayers:GetInt() == 1 then
+        render.SetColorModulation(1, 0, 0)
+        for _, target in ipairs(player.GetAll()) do
+            if target == ply or not target:Alive() then continue end
+            target:DrawModel()
+        end
+    end
+
+
+    if masterHaloStatusEffects:GetInt() == 1 then
+        render.SetColorModulation(0, 0, 1)
+        for _, ent in ipairs(ents.FindByClass("dnd_status_effects")) do
+            if not IsValid(ent) then continue end
+            ent:DrawModel()
+        end
+    end
+
+    cam.IgnoreZ(false)
+    render.MaterialOverride(nil)
+    render.SetColorModulation(1, 1, 1)
+    render.SuppressEngineLighting(false)
+end)
+
 
 -- Хук для блокировки отрисовки гало-эффектов
 hook.Add("PreDrawHalos", "DNDT_DisablePropsHalos", function()
     if not adventure_mode:GetBool() then return end
 
     -- if LocalPlayer():IsServerHost() then return end
-
     return true
 end)
 
