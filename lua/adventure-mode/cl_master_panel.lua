@@ -106,14 +106,59 @@ function MasterPanel()
         draw.RoundedBox(0, 0, 0, w, h, Color(50, 50, 50))
     end
 
+    local BottomTogglePanel = vgui.Create("DPanel", LeftMenu)
+    BottomTogglePanel:Dock(BOTTOM)
+    BottomTogglePanel:SetHeight(37)
+    BottomTogglePanel.Paint = function() end
+
+    local function CreateConvarToggle(cvarName, iconOn, iconOff)
+        local btn = vgui.Create("DButton", BottomTogglePanel)
+        btn:Dock(LEFT)
+        btn:SetWide(math.floor(150 / 4))
+        btn:SetText("")
+
+        local matOn = Material(iconOn)
+        local matOff = Material(iconOff)
+
+        btn.Paint = function(self, w, h)
+            local cv = GetConVar(cvarName)
+            local isOn = cv and cv:GetBool() or false
+
+            if self:IsHovered() then
+                draw.RoundedBox(0, 0, 0, w, h, Color(255, 255, 255, 10))
+            end
+
+            surface.SetDrawColor(255, 255, 255, 255)
+            surface.SetMaterial(isOn and matOn or matOff)
+            surface.DrawTexturedRect((w - 16) / 2, (h - 16) / 2, 16, 16)
+        end
+
+        btn.DoClick = function()
+            local cv = GetConVar(cvarName)
+            if cv then
+                local newState = not cv:GetBool()
+                RunConsoleCommand(cvarName, newState and "1" or "0")
+            end
+        end
+    end
+
+    CreateConvarToggle("dndt_masterfullbright", "icon16/lightbulb_off.png", "icon16/lightbulb.png")
+    CreateConvarToggle("dndt_masterfogskip", "icon16/weather_sun.png", "icon16/weather_clouds.png")
+    CreateConvarToggle("my_cvar_3", "icon16/lightbulb.png", "icon16/lightbulb_off.png")
+    CreateConvarToggle("my_cvar_4", "icon16/lock.png", "icon16/lock_open.png")
+
     local ContentArea = vgui.Create("DPanel", MasterFrame)
     ContentArea:Dock(FILL)
     ContentArea.Paint = function(self, w, h)
         draw.RoundedBox(0, 0, 0, w, h, Color(80, 80, 80))
     end
 
+
     -- Очередь
     local TabOchered = AddTab("ochered", "Очередь", LeftMenu, ContentArea)
+
+
+
     local Label1 = vgui.Create("DLabel", TabOchered)
     Label1:SetText("Сущности")
     Label1:SetPos(20, 20)
@@ -397,6 +442,63 @@ function MasterPanel()
         net.Start("DND_RequestStartSign")
         net.SendToServer()
     end
+
+    -- Настройки тумана
+    local FogTab = AddTab("FPSFog", "Настройки тумана", LeftMenu, ContentArea)
+
+    local fogPresets = FogTab:Add("ControlPresets")
+    fogPresets:Dock(TOP)
+    fogPresets:DockMargin(10, 10, 10, 5)
+    fogPresets:SetPreset("fpsfog_presets")
+
+    fogPresets:AddConVar("fpsfog_active")
+    fogPresets:AddConVar("fpsfog_skybox")
+    fogPresets:AddConVar("fpsfog_distance")
+    fogPresets:AddConVar("fpsfog_thickness")
+    fogPresets:AddConVar("fpsfog_color_r")
+    fogPresets:AddConVar("fpsfog_color_g")
+    fogPresets:AddConVar("fpsfog_color_b")
+
+    local fogenablevar = FogTab:Add("DCheckBoxLabel")
+    fogenablevar:SetValue(GetConVar("fpsfog_active") and GetConVar("fpsfog_active"):GetFloat() or 0)
+    fogenablevar:SetText("Включить туман")
+    fogenablevar:Dock(TOP)
+    fogenablevar:DockMargin(10, 10, 0, 0)
+    fogenablevar:SetConVar("fpsfog_active")
+
+    local fogskyboxvar = FogTab:Add("DCheckBoxLabel")
+    fogskyboxvar:SetValue(GetConVar("fpsfog_skybox") and GetConVar("fpsfog_skybox"):GetFloat() or 0)
+    fogskyboxvar:SetText("Включит Skybox")
+    fogskyboxvar:Dock(TOP)
+    fogskyboxvar:DockMargin(10, 10, 0, 0)
+    fogskyboxvar:SetConVar("fpsfog_skybox")
+
+    local fogendvar = FogTab:Add("DNumSlider")
+    fogendvar:SetDecimals(0)
+    fogendvar:SetValue(GetConVar("fpsfog_distance") and GetConVar("fpsfog_distance"):GetFloat() or 5000)
+    fogendvar:SetMinMax(0, 20000)
+    fogendvar:Dock(TOP)
+    fogendvar:DockMargin(10, 10, 10, 0)
+    fogendvar:SetText("Дистанция тумана")
+    fogendvar:SetConVar("fpsfog_distance")
+
+    local fogstartvar = FogTab:Add("DNumSlider")
+    fogstartvar:SetDecimals(0)
+    fogstartvar:SetValue(GetConVar("fpsfog_thickness") and GetConVar("fpsfog_thickness"):GetFloat() or 25)
+    fogstartvar:SetMinMax(0, 100)
+    fogstartvar:Dock(TOP)
+    fogstartvar:DockMargin(10, 10, 10, 0)
+    fogstartvar:SetText("Толщина тумана")
+    fogstartvar:SetConVar("fpsfog_thickness")
+
+    local fogcolorvar = FogTab:Add("DColorMixer")
+    fogcolorvar:Dock(TOP)
+    fogcolorvar:SetAlphaBar(false)
+    fogcolorvar:DockMargin(10, 10, 10, 0)
+    fogcolorvar:SetConVarR("fpsfog_color_r")
+    fogcolorvar:SetConVarG("fpsfog_color_g")
+    fogcolorvar:SetConVarB("fpsfog_color_b")
+
 
     -- Команды
     local Commands = AddTab("Cmnds", "Команды", LeftMenu, ContentArea)

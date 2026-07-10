@@ -63,3 +63,21 @@ hook.Add("PreDrawHalos", "DNDT_DisablePropsHalos", function()
 
     return true
 end)
+
+
+local masterFullbright = CreateConVar("dndt_masterfullbright", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включить/выключить потребность в свете..", 0, 1)
+
+hook.Add("PreRender", "DNDT_MasterFullbright_Pre", function()
+    if masterFullbright:GetBool() then
+        local ply = LocalPlayer()
+
+        if IsValid(ply) and ply:IsListenServerHost() then
+            render.SetLightingMode(1)
+        end
+    end
+end)
+
+hook.Add("PreDrawHUD", "DNDT_MasterFullbright_HUD", function()
+    render.SetLightingMode(0)
+end)

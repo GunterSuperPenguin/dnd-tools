@@ -2,6 +2,7 @@
 local adventure_mode = CreateConVar("dndt_adventuremode", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
     "Включение (1) или отключение (0) режима приключений для игроков.", 0, 1)
 
+
 local properties_to_hide = {
     --    "collision_off",
     --    "collision_on",
@@ -126,3 +127,13 @@ cvars.AddChangeCallback("dndt_enableflashlight", function(_, _, value_new)
         end
     end
 end, "DNDT_FlashlightCallback")
+
+
+-- Фулбрайт
+local masterFullbright = CreateConVar("dndt_masterfullbright", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включить/выключить потребность в свете у хоста.", 0, 1)
+
+
+-- Вкл/откл туман
+local masterFogSkip = CreateConVar("dndt_masterfogskip", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включить/выключить туман для мастера.", 0, 1)
