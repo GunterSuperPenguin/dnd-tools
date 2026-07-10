@@ -42,3 +42,24 @@ hook.Add("ShutDown", "DNDT_CleanUpFlashlight", function()
         hostFlashlight:Remove()
     end
 end)
+
+-- hook.Add("PreDrawHalos", "MyCustomHaloHook", function()
+--     -- Подсвечиваем всех игроков на сервере красным цветом
+--     local players = player.GetAll()
+--     local haloColor = Color(255, 79, 0)
+
+--     (таблица_объектов, цвет, размытие_X, размытие_Y, проходы, аддитивный, видеть_сквозь_стены)
+--     halo.Add(players, haloColor, 5, 5, 100, true, true)
+-- end)
+
+local adventure_mode = CreateConVar("dndt_adventuremode", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
+    "Включение (1) или отключение (0) режима приключений для игроков.", 0, 1)
+
+-- Хук для блокировки отрисовки гало-эффектов
+hook.Add("PreDrawHalos", "DNDT_DisablePropsHalos", function()
+    if not adventure_mode:GetBool() then return end
+
+    -- if LocalPlayer():IsServerHost() then return end
+
+    return true
+end)

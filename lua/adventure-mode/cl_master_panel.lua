@@ -404,6 +404,12 @@ function MasterPanel()
     List:SetPos(20, 20)
     List:SetSize(300, 400)
 
+    local adventure_mode = vgui.Create("DCheckBoxLabel")
+    adventure_mode:SetText("Режим приключений")
+    adventure_mode:SetConVar("dndt_adventuremode")
+    adventure_mode:SetSize(200, 30)
+    List:Add(adventure_mode)
+
     local plCollision = vgui.Create("DCheckBoxLabel")
     plCollision:SetText("Столкновение между игроками")
     plCollision:SetConVar("dndt_playercollision")
