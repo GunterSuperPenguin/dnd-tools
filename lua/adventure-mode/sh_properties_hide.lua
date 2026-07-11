@@ -1,4 +1,3 @@
--- Создаем переменную на сервере и реплицируем её на клиент
 if SERVER then
     CreateConVar("dndt_adventuremode", "0", { FCVAR_ARCHIVE, FCVAR_REPLICATED },
         "Включение (1) или отключение (0) режима приключений для игроков.", 0, 1)
@@ -30,7 +29,6 @@ local properties_to_hide = {
 }
 
 hook.Add("InitPostEntity", "DNDT_ModifyMultipleProperties", function()
-    -- Если по какой-то причине ConVar еще не создался, подождем
     if not adventure_mode then
         adventure_mode = GetConVar("dndt_adventuremode")
     end
@@ -44,7 +42,6 @@ hook.Add("InitPostEntity", "DNDT_ModifyMultipleProperties", function()
             prop.Filter = function(self, ent, ply)
                 if not IsValid(ply) then return false end
 
-                -- Теперь это условие сработает и на клиенте, скрывая вкладки визуально
                 if adventure_mode and adventure_mode:GetInt() == 1 then
                     return false
                 end

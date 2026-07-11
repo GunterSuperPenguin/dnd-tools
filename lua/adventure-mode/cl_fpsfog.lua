@@ -16,18 +16,13 @@ LocalPlayer().fpsfog_3dsky = GetConVar("r_3dsky"):GetFloat()
 local fpsfog_SC_pos = fpsfog_SC_pos
 local fpsfog_SC_scale = fpsfog_SC_scale
 
-net.Receive("fpsfog_3dsky", function(len, ply)
+net.Receive("fpsfog_3dsky", function(_, _)
     local active = net.ReadInt(3)
     fpsfog_SC_scale = net.ReadInt(8)
     fpsfog_SC_pos = net.ReadVector()
 
     LocalPlayer():ConCommand("r_3dsky " .. tostring(active))
 end)
-
-local fogactive = true
-local fogend = 5000
-local fogstart = 3000
-local fogcolor = Color(83, 83, 83)
 
 hook.Add("InitPostEntity", "fpsfog_postinit", function()
     local existingcontrollers = ents.FindByClass("env_fog_controller")

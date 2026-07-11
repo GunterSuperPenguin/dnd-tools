@@ -37,11 +37,6 @@ cvars.AddChangeCallback("fpsfog_skybox", function(name, old, new)
     end
 end)
 
-local fogactive = true
-local fogend = 5000
-local fogstart = 3000
-local fogcolor = Color(83, 83, 83)
-
 local fpsfog_newcontroller = ents.Create("env_fog_controller")
 
 local load_queue = {}

@@ -735,6 +735,72 @@ hook.Add("Think", "MasterMenu_RestoreCursor", function()
     end
 end)
 
+-- Центральный (активный) элемент
+surface.CreateFont("Lock_Center", { font = "Arial", size = 60, weight = 800 })
+-- Соседние элементы (сверху/снизу от центра)
+surface.CreateFont("Lock_Medium", { font = "Arial", size = 40, weight = 600 })
+-- Крайние элементы (самые дальние)
+surface.CreateFont("Lock_Small",  { font = "Arial", size = 20, weight = 400 })
+
+-- Визуализация очердеи
+local function QueueHUD()
+    -- Центр экрана, откуда строится барабан
+    local centerX = ScrW() / 2
+    local centerY = ScrH() / 2
+
+    -- Конфигурация слотов барабана кодового замка:
+    -- offset_index: относительно текущего элемента (0 - это первый в очереди, 1 - второй и т.д.)
+    -- y_offset: смещение по вертикали от центра экрана
+    -- font: размер шрифта для этого слоя
+    -- alpha: прозрачность (эффект удаления в тень)
+    local slots = {
+        { offset_index = -2, y_offset = -80, font = "Lock_Small",  alpha = 70  }, -- Самый верхний
+        { offset_index = -1, y_offset = -45, font = "Lock_Medium", alpha = 150 }, -- Верхний средний
+        { offset_index =  0, y_offset =   0, font = "Lock_Center", alpha = 255 }, -- ЦЕНТР (Текущий элемент)
+        { offset_index =  1, y_offset =  45, font = "Lock_Medium", alpha = 150 }, -- Нижний средний
+        { offset_index =  2, y_offset =  80, font = "Lock_Small",  alpha = 70  }  -- Самый нижний
+    }
+
+    -- Базовый (активный) индекс в массиве, который стоит по центру
+    local currentIdx = 1
+
+    for _, slot in ipairs(slots) do
+        -- Вычисляем реальный индекс в вашем массиве QueueListTable
+        local targetIdx = currentIdx + slot.offset_index
+        local item = QueueListTable[targetIdx]
+
+        if item and item.name then
+            -- Если элемент есть, рисуем его имя
+            draw.SimpleText(
+                item.name,
+                slot.font,
+                centerX,
+                centerY + slot.y_offset,
+                Color(255, 255, 255, slot.alpha), -- Альфа меняется в зависимости от слота
+                TEXT_ALIGN_CENTER,
+                TEXT_ALIGN_CENTER
+            )
+        else
+            -- Если элемента нет (например, очередь пуста или это верхние пустые слоты),
+            -- рисуем пустые засечки или прочерки, как на настоящем замке
+            draw.SimpleText(
+                "---",
+                slot.font,
+                centerX,
+                centerY + slot.y_offset,
+                Color(150, 150, 150, slot.alpha / 2),
+                TEXT_ALIGN_CENTER,
+                TEXT_ALIGN_CENTER
+            )
+        end
+    end
+end
+
+
+
+hook.Add("HUDPaint", "MyCustomText", function()
+    QueueHUD()
+end)
 
 local button_name = "AdventureMode:DesktopWindows"
 
@@ -784,8 +850,9 @@ hook.Add("ContextMenuOpened", button_name, function()
         end
 
         -- Условие
-
-        pl:SetNWBool("m_bIsDNDMaster", true) -- server-side code
+        -- if pl:IsListenServerHost() then
+        --     pl:SetNWBool("m_bIsDNDMaster", true) -- server-side code
+        -- end
 
         if pl:GetNWBool("m_bIsDNDMaster", false) then
             if panel:IsVisible() then return end

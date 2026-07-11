@@ -9,6 +9,7 @@ if SERVER then
     include("sv_data.lua")
     include("adventure-mode/sh_properties_hide.lua")
 
+    include("adventure-mode/sv_mastrer_panel.lua")
     include("adventure-mode/sv_console_commands.lua")
     include("adventure-mode/sv_queue.lua")
     include("dnd-status-effects/sv_status_system.lua")
