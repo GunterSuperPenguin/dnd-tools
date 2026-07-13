@@ -735,76 +735,102 @@ hook.Add("Think", "MasterMenu_RestoreCursor", function()
     end
 end)
 
--- Центральный (активный) элемент
-surface.CreateFont("Lock_Center", { font = "Arial", size = 60, weight = 800 })
--- Соседние элементы (сверху/снизу от центра)
-surface.CreateFont("Lock_Medium", { font = "Arial", size = 40, weight = 600 })
--- Крайние элементы (самые дальние)
-surface.CreateFont("Lock_Small",  { font = "Arial", size = 20, weight = 400 })
+surface.CreateFont("Lock_Animated", { font = "Arial", size = 80, weight = 800, shadow = true })
 
--- Визуализация очердеи
-local function QueueHUD()
-    -- Центр экрана, откуда строится барабан
-    local centerX = ScrW() / 2
-    local centerY = ScrH() / 2
+local currentIdx = 1
+local visualIdx = 1
 
-    -- Конфигурация слотов барабана кодового замка:
-    -- offset_index: относительно текущего элемента (0 - это первый в очереди, 1 - второй и т.д.)
-    -- y_offset: смещение по вертикали от центра экрана
-    -- font: размер шрифта для этого слоя
-    -- alpha: прозрачность (эффект удаления в тень)
-    local slots = {
-        { offset_index = -2, y_offset = -80, font = "Lock_Small",  alpha = 70  }, -- Самый верхний
-        { offset_index = -1, y_offset = -45, font = "Lock_Medium", alpha = 150 }, -- Верхний средний
-        { offset_index =  0, y_offset =   0, font = "Lock_Center", alpha = 255 }, -- ЦЕНТР (Текущий элемент)
-        { offset_index =  1, y_offset =  45, font = "Lock_Medium", alpha = 150 }, -- Нижний средний
-        { offset_index =  2, y_offset =  80, font = "Lock_Small",  alpha = 70  }  -- Самый нижний
-    }
+local function GetCyclicItem(targetIdx)
+    local count = #QueueListTable
+    if count == 0 then return nil end
 
-    -- Базовый (активный) индекс в массиве, который стоит по центру
-    local currentIdx = 1
+    local cyclicIdx = (math.floor(targetIdx) - 1) % count + 1
+    return QueueListTable[cyclicIdx]
+end
 
-    for _, slot in ipairs(slots) do
-        -- Вычисляем реальный индекс в вашем массиве QueueListTable
-        local targetIdx = currentIdx + slot.offset_index
-        local item = QueueListTable[targetIdx]
+local function AdvanceQueue(step)
+    step = step or 1
+    local count = #QueueListTable
+    if count == 0 then return end
 
-        if item and item.name then
-            -- Если элемент есть, рисуем его имя
-            draw.SimpleText(
-                item.name,
-                slot.font,
-                centerX,
-                centerY + slot.y_offset,
-                Color(255, 255, 255, slot.alpha), -- Альфа меняется в зависимости от слота
-                TEXT_ALIGN_CENTER,
-                TEXT_ALIGN_CENTER
-            )
-        else
-            -- Если элемента нет (например, очередь пуста или это верхние пустые слоты),
-            -- рисуем пустые засечки или прочерки, как на настоящем замке
-            draw.SimpleText(
-                "---",
-                slot.font,
-                centerX,
-                centerY + slot.y_offset,
-                Color(150, 150, 150, slot.alpha / 2),
-                TEXT_ALIGN_CENTER,
-                TEXT_ALIGN_CENTER
-            )
-        end
+    local oldIdx = currentIdx
+    currentIdx = (currentIdx + step - 1) % count + 1
+
+    if step > 0 and currentIdx < oldIdx then
+        visualIdx = visualIdx - count
+    elseif step < 0 and currentIdx > oldIdx then
+        visualIdx = visualIdx + count
     end
 end
 
+local function QueueHUD()
+    if not QueueListTable or #QueueListTable == 0 then return end
 
+    local centerX = ScrW() / 2
+    local centerY = ScrH() / 2
+
+    visualIdx = Lerp(FrameTime() * 12, visualIdx, currentIdx)
+
+    local stepHeight = 85
+
+    local lineWidth = 250
+    local lineSpacing = 45
+    surface.SetDrawColor(255, 255, 255, 255)
+    surface.DrawLine(centerX - lineWidth / 2, centerY - lineSpacing, centerX + lineWidth / 2, centerY - lineSpacing)
+    surface.DrawLine(centerX - lineWidth / 2, centerY + lineSpacing, centerX + lineWidth / 2, centerY + lineSpacing)
+
+    for offset = -3, 3 do
+        local targetIdx = visualIdx + offset
+        local item = GetCyclicItem(targetIdx)
+
+        local dynamicY = (offset - (visualIdx % 1)) * stepHeight
+        local distanceFromCenter = math.abs(dynamicY)
+
+        if distanceFromCenter > stepHeight * 2.5 then continue end
+
+        local alpha = math.Clamp(255 - (distanceFromCenter * 1.3), 0, 255)
+
+        local scale = math.Remap(distanceFromCenter, 0, stepHeight * 2, 1.0, 0.5)
+        scale = math.Clamp(scale, 0.5, 1.0)
+
+        local text = (item and item.name) and item.name or "---"
+        local textColor = Color(255, 255, 255, alpha)
+
+        local m = Matrix()
+        m:Translate(Vector(centerX, centerY + dynamicY, 0))
+        m:Scale(Vector(scale, scale, 1))
+        m:Translate(Vector(-centerX, -(centerY + dynamicY), 0))
+
+        cam.PushModelMatrix(m)
+            draw.SimpleText(
+                text,
+                "Lock_Animated",
+                centerX,
+                centerY + dynamicY,
+                textColor,
+                TEXT_ALIGN_CENTER,
+                TEXT_ALIGN_CENTER
+            )
+        cam.PopModelMatrix()
+    end
+end
 
 hook.Add("HUDPaint", "MyCustomText", function()
     QueueHUD()
 end)
 
-local button_name = "AdventureMode:DesktopWindows"
+-- Управление для теста
+hook.Add("PlayerButtonDown", "TestQueueControls", function(ply, button)
+    if button == KEY_UP then
+        AdvanceQueue(1)
+    elseif button == KEY_DOWN then
+        AdvanceQueue(-1)
+    end
+end)
 
-list.Set("DesktopWindows", button_name, {
+local master_panel = "DnDTools:MasterPanel"
+
+list.Set("DesktopWindows", master_panel, {
     title = "Мастер",
     icon = "icon16/eye.png",
     init = function(icon, window)
@@ -813,7 +839,7 @@ list.Set("DesktopWindows", button_name, {
 })
 
 
-hook.Add("ContextMenuOpened", button_name, function()
+hook.Add("ContextMenuOpened", master_panel, function()
     ---@type Panel
     local context_menu = _G.g_ContextMenu
     if context_menu == nil or not context_menu:IsValid() then return end
@@ -830,7 +856,7 @@ hook.Add("ContextMenuOpened", button_name, function()
 
     for i = 1, #children, 1 do
         local pnl = children[i]
-        if pnl ~= nil and pnl:IsValid() and pnl.WidgetClass == button_name then
+        if pnl ~= nil and pnl:IsValid() and pnl.WidgetClass == master_panel then
             panel = pnl
             break
         end
@@ -838,9 +864,9 @@ hook.Add("ContextMenuOpened", button_name, function()
 
     if panel == nil then return end
 
-    hook.Add("Tick", button_name, function()
+    hook.Add("Tick", master_panel, function()
         if not panel:IsValid() then
-            hook.Remove("Tick", button_name)
+            hook.Remove("Tick", master_panel)
             return
         end
 
@@ -850,9 +876,8 @@ hook.Add("ContextMenuOpened", button_name, function()
         end
 
         -- Условие
-        -- if pl:IsListenServerHost() then
-        --     pl:SetNWBool("m_bIsDNDMaster", true) -- server-side code
-        -- end
+            pl:SetNWBool("m_bIsDNDMaster", true) -- server-side code
+
 
         if pl:GetNWBool("m_bIsDNDMaster", false) then
             if panel:IsVisible() then return end
