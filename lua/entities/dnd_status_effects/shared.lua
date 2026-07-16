@@ -203,7 +203,43 @@ function ENT:SetupDataTables()
             order = 15
         }
     })
-    self:NetworkVar("Int", 16, "DSE_weight", {
+    self:NetworkVar("Int", 16, "DSE_acid", {
+        KeyName = "dse_acid",
+        Edit = {
+            type = "Int",
+            category = "Статус-эффекты",
+            title = "Растворение",
+            min = 0,
+            max = 3,
+            order = 16
+        }
+    })
+
+    self:NetworkVar("Int", 17, "DSE_fear", {
+        KeyName = "dse_fear",
+        Edit = {
+            type = "Int",
+            category = "Статус-эффекты",
+            title = "Страх",
+            min = 0,
+            max = 3,
+            order = 17
+        }
+    })
+
+    self:NetworkVar("Int", 18, "DSE_shocked", {
+        KeyName = "dse_shocked",
+        Edit = {
+            type = "Int",
+            category = "Статус-эффекты",
+            title = "Ошоломление",
+            min = 0,
+            max = 3,
+            order = 18
+        }
+    })
+
+    self:NetworkVar("Int", 25, "DSE_weight", {
         KeyName = "dse_weight",
         Edit = {
             type = "Int",
@@ -211,12 +247,12 @@ function ENT:SetupDataTables()
             title = "Перевес",
             min = 0,
             max = 1,
-            order = 16
+            order = 25
         }
     })
 
     -- Бонусы к ролам
-    self:NetworkVar("Int", 17, "DSE_Attack", {
+    self:NetworkVar("Int", 30, "DSE_attack", {
         KeyName = "dse_attack",
         Edit = {
             type = "Int",
@@ -225,10 +261,10 @@ function ENT:SetupDataTables()
             -- readonly = true,
             min = -30,
             max = 30,
-            order = 17
+            order = 30
         }
     })
-    self:NetworkVar("Int", 18, "DSE_block", {
+    self:NetworkVar("Int", 31, "DSE_block", {
         KeyName = "dse_block",
         Edit = {
             type = "Int",
@@ -236,10 +272,10 @@ function ENT:SetupDataTables()
             title = "Блок",
             min = -30,
             max = 30,
-            order = 18
+            order = 31
         }
     })
-    self:NetworkVar("Int", 19, "DSE_dodge", {
+    self:NetworkVar("Int", 32, "DSE_dodge", {
         KeyName = "dse_dodge",
         Edit = {
             type = "Int",
@@ -247,10 +283,10 @@ function ENT:SetupDataTables()
             title = "Уворот",
             min = -30,
             max = 30,
-            order = 19
+            order = 32
         }
     })
-    self:NetworkVar("Int", 20, "DSE_counter", {
+    self:NetworkVar("Int", 33, "DSE_counter", {
         KeyName = "dse_counter",
         Edit = {
             type = "Int",
@@ -258,10 +294,10 @@ function ENT:SetupDataTables()
             title = "Контрдействие",
             min = -30,
             max = 30,
-            order = 20
+            order = 33
         }
     })
-    self:NetworkVar("Int", 21, "DSE_fists", {
+    self:NetworkVar("Int", 34, "DSE_fists", {
         KeyName = "dse_fists",
         Edit = {
             type = "Int",
@@ -269,10 +305,10 @@ function ENT:SetupDataTables()
             title = "Удары кулаков",
             min = -30,
             max = 30,
-            order = 21
+            order = 34
         }
     })
-    self:NetworkVar("Int", 22, "DSE_crossbow", {
+    self:NetworkVar("Int", 35, "DSE_crossbow", {
         KeyName = "dse_crossbow",
         Edit = {
             type = "Int",
@@ -280,10 +316,10 @@ function ENT:SetupDataTables()
             title = "Дальнобойное",
             min = -30,
             max = 30,
-            order = 22
+            order = 35
         }
     })
-    self:NetworkVar("Int", 23, "DSE_other", {
+    self:NetworkVar("Int", 36, "DSE_other", {
         KeyName = "dse_other",
         Edit = {
             type = "Int",
@@ -291,7 +327,7 @@ function ENT:SetupDataTables()
             title = "Другие",
             min = -30,
             max = 30,
-            order = 23
+            order = 36
         }
     })
 end

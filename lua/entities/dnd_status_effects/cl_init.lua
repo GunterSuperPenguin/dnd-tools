@@ -16,99 +16,75 @@ surface.CreateFont( "EntityHPFont", {
     weight = 1000
 })
 
+local ICON_CONFIG = {
+    -- Обычные эффекты (> 0)
+    { func = "GetDSE_blood",       icon = "blood-drop.png" },
+    { func = "GetDSE_stunning",    icon = "unhealthy.png" },
+    { func = "GetDSE_fire",        icon = "fire.png" },
+    { func = "GetDSE_ice",         icon = "icicle.png" },
+    { func = "GetDSE_electricity", icon = "electricity.png" },
+    { func = "GetDSE_madness",     icon = "madness.png" },
+    { func = "GetDSE_sleep",       icon = "sleep-plus.png" },
+    { func = "GetDSE_toxic",       icon = "toxic.png" },
+    { func = "GetDSE_acid",        icon = "acid.png" },
+    { func = "GetDSE_fear",        icon = "fear.png" },
+    { func = "GetDSE_shocked",     icon = "shocked.png" },
+
+    -- Исключение: вес выводит пробел вместо значения
+    { func = "GetDSE_weight",      icon = "weight.png", staticValue = " " },
+
+    -- Модификаторы статов с разными иконками для плюса и минуса
+    { func = "GetDSE_attack",      iconPlus = "attack-plus.png", iconMinus = "attack-minus.png", showPlus = true },
+    { func = "GetDSE_block",       iconPlus = "shield-plus.png", iconMinus = "shield-minus.png", showPlus = true },
+
+    -- Модификаторы статов с одинаковыми иконками, но знаком "+"
+    { func = "GetDSE_dodge",       icon = "dodge.png",           showPlus = true },
+    { func = "GetDSE_counter",     icon = "counter-action.png",  showPlus = true },
+    { func = "GetDSE_fists",       icon = "fists.png",           showPlus = true },
+    { func = "GetDSE_crossbow",    icon = "crossbow.png",        showPlus = true },
+    { func = "GetDSE_other",       icon = "other.png",           showPlus = true },
+}
+
 local function StatusIconDraw( self )
-    local transpert = 255
-    if self:GetDSE_NameDisplay() == true then
-        transpert = 0
-    end
+    local transpert = self:GetDSE_NameDisplay() and 0 or 255
 
-    local pos = self:GetPos() + Vector( 0 + self:GetDSE_x_Position(), 0 + self:GetDSE_z_Position(), 90 + self:GetDSE_y_Position() )
-    local eyeAngles = LocalPlayer():EyeAngles()
-    local angles = Angle( 0, eyeAngles.y - 90, 90 )
+      local pos = self:GetPos() + Vector( self:GetDSE_x_Position(), self:GetDSE_z_Position(), 90 + self:GetDSE_y_Position() )
+      local eyeAngles = LocalPlayer():EyeAngles()
+      local angles = Angle( 0, eyeAngles.y - 90, 90 )
 
-    local sizeScale = self:GetDSE_Size() or 1
-    if sizeScale <= 0 then sizeScale = 1 end
+      local sizeScale = self:GetDSE_Size() or 1
+      if sizeScale <= 0 then sizeScale = 1 end
 
-    local activeIcons = {}
+      local activeIcons = {}
 
-    if self:GetDSE_blood() > 0 then
-        table.insert( activeIcons, { path = "blood-drop.png", value = self:GetDSE_blood() } )
-    end
+      -- Проходимся по нашему конфигуратору
+      for _, cfg in ipairs(ICON_CONFIG) do
+          -- Вызываем геттер (например, self["GetDSE_blood"](self) это то же самое, что self:GetDSE_blood())
+          local val = self[cfg.func](self) or 0
 
-    if self:GetDSE_stunning() > 0 then
-        table.insert( activeIcons, { path = "unhealthy.png", value = self:GetDSE_stunning() } )
-    end
+          if val > 0 then
+              -- Выбираем иконку (если есть специальная для плюса, берем её)
+              local iconPath = cfg.iconPlus or cfg.icon
 
-    if self:GetDSE_fire() > 0 then
-        table.insert( activeIcons, { path = "fire.png", value = self:GetDSE_fire() } )
-    end
+              -- Формируем значение для отображения
+              local displayValue = val
+              if cfg.staticValue then
+                  displayValue = cfg.staticValue
+              elseif cfg.showPlus then
+                  displayValue = "+" .. val
+              end
 
-    if self:GetDSE_ice() > 0 then
-        table.insert( activeIcons, { path = "icicle.png", value = self:GetDSE_ice() } )
-    end
+              table.insert( activeIcons, { path = iconPath, value = displayValue } )
 
-    if self:GetDSE_electricity() > 0 then
-        table.insert( activeIcons, { path = "electricity.png", value = self:GetDSE_electricity() } )
-    end
-
-    if self:GetDSE_madness() > 0 then
-        table.insert( activeIcons, { path = "madness.png", value = self:GetDSE_madness() } )
-    end
-
-    if self:GetDSE_sleep() > 0 then
-        table.insert( activeIcons, { path = "sleep-plus.png", value = self:GetDSE_sleep() } )
-    end
-
-    if self:GetDSE_toxic() > 0 then
-        table.insert( activeIcons, { path = "toxic.png", value = self:GetDSE_toxic() } )
-    end
-
-    if self:GetDSE_weight() > 0 then
-        table.insert( activeIcons, { path = "weight.png", value = " " } )
-    end
-
-    if self:GetDSE_Attack() > 0 then
-        table.insert( activeIcons, { path = "attack-plus.png", value = "+" .. self:GetDSE_Attack() } )
-    elseif self:GetDSE_Attack() < 0 then
-            table.insert( activeIcons, { path = "attack-minus.png", value = self:GetDSE_Attack() } )
-    end
-
-    if self:GetDSE_block() > 0 then
-        table.insert( activeIcons, { path = "shield-plus.png", value = "+" .. self:GetDSE_block() } )
-    elseif self:GetDSE_block() < 0 then
-            table.insert( activeIcons, { path = "shield-minus.png", value = self:GetDSE_block() } )
-    end
-
-    if self:GetDSE_dodge() > 0 then
-        table.insert( activeIcons, { path = "dodge.png", value = "+" .. self:GetDSE_dodge() } )
-    elseif self:GetDSE_dodge() < 0 then
-            table.insert( activeIcons, { path = "dodge.png", value = self:GetDSE_dodge() } )
-    end
-
-    if self:GetDSE_counter() > 0 then
-        table.insert( activeIcons, { path = "counter-action.png", value = "+" .. self:GetDSE_counter() } )
-    elseif self:GetDSE_counter() < 0 then
-            table.insert( activeIcons, { path = "counter-action.png", value = self:GetDSE_counter() } )
-    end
-
-    if self:GetDSE_fists() > 0 then
-        table.insert( activeIcons, { path = "fists.png", value = "+" .. self:GetDSE_fists() } )
-    elseif self:GetDSE_fists() < 0 then
-            table.insert( activeIcons, { path = "fists.png", value = self:GetDSE_fists() } )
-    end
-
-    if self:GetDSE_crossbow() > 0 then
-        table.insert( activeIcons, { path = "crossbow.png", value = "+" .. self:GetDSE_crossbow() } )
-    elseif self:GetDSE_crossbow() < 0 then
-            table.insert( activeIcons, { path = "crossbow.png", value = self:GetDSE_crossbow() } )
-    end
-
-    if self:GetDSE_other() > 0 then
-        table.insert( activeIcons, { path = "other.png", value = "+" .. self:GetDSE_other() } )
-    elseif self:GetDSE_other() < 0 then
-            table.insert( activeIcons, { path = "other.png", value = self:GetDSE_other() } )
-    end
-
+          elseif val < 0 then
+              -- Отрицательные значения нас интересуют только у модификаторов
+              if cfg.iconMinus or cfg.showPlus then
+                  local iconPath = cfg.iconMinus or cfg.icon
+                  -- При отрицательном значении lua сама подставит минус (например "-2")
+                  table.insert( activeIcons, { path = iconPath, value = val } )
+              end
+          end
+      end
     local iconSize = 128
     local count = #activeIcons
 
