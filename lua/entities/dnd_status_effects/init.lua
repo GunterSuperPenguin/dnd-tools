@@ -9,7 +9,7 @@ function ENT:Initialize()
     self:SetMoveType( MOVETYPE_VPHYSICS )
     self:SetSolid( SOLID_VPHYSICS )
 
-    self:SetDSE_TopColor( Vector(1, 1, 1) )
+    self:SetDSE_TopColor( Vector( 1, 1, 1 ) )
     self:SetDSE_EntityName( "Доходяга" )
     self:SetDSE_MaxHP( 100 )
     self:SetDSE_CurrentHP( 100 )

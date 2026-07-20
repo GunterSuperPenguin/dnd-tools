@@ -38,11 +38,11 @@ if SERVER then
     }
     local TextUsed = {}
     local function refillTextUsed()
-        TextUsed = table.Copy(subText)
+        TextUsed = table.Copy( subText )
     end
 
-    util.AddNetworkString("DND_RequestStartSign")
-    util.AddNetworkString("DND_AdventureStart")
+    util.AddNetworkString( "DND_RequestStartSign" )
+    util.AddNetworkString( "DND_AdventureStart" )
 
     refillTextUsed()
 
@@ -50,20 +50,21 @@ if SERVER then
         if #TextUsed == 0 then
             refillTextUsed()
         end
-        local idx = math.random(1, #TextUsed)
-        local text = TextUsed[idx]
-        table.remove(TextUsed, idx)
+
+        local idx = math.random( 1, #TextUsed )
+        local text = TextUsed[ idx ]
+        table.remove( TextUsed, idx )
         return text
     end
 
     function StartSigns()
         local chosenText = getRandomText()
-        net.Start("DND_AdventureStart")
-        net.WriteString(chosenText)
+        net.Start( "DND_AdventureStart" )
+        net.WriteString( chosenText )
         net.Broadcast()
     end
 
-    net.Receive("DND_RequestStartSign", function(len, pl)
+    net.Receive( "DND_RequestStartSign", function( len, pl )
         StartSigns()
-    end)
+    end )
 end
