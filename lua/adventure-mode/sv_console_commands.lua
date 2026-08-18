@@ -41,9 +41,9 @@ hook.Add( "PlayerInitialSpawn", "DNDT_MarkFlashlightHost", function( pl )
         pl:SetNWBool( "DNDT_IsHost", true )
     end
 
-    if pl:IsListenServerHost() and enblfashlight:GetBool() then
-        UpdateFogForHost( "1" )
-    end
+    -- if pl:IsListenServerHost() and enblfashlight:GetBool() then
+    --     UpdateFogForHost( "1" )
+    -- end
 end )
 
 hook.Add( "PlayerSwitchFlashlight", "DNDT_RestrictFlashlight", function( pl, enabled )

@@ -1,7 +1,10 @@
 include( "shared.lua" )
 
+local pl = LocalPlayer()
+
 function ENT:Initialize()
-    self:SetRenderBounds( Vector( -1000, -1000, -1000 ), Vector( 1000, 1000, 1000 ), Vector( 0, 0, 0 ) )
+    local mn, mx = self:GetModel() and self:GetModelBounds() or Vector( -16, -16, -16 ), Vector( 16, 16, 16 )
+    self:SetRenderBounds( mn or Vector( -16, -16, -16 ), mx or Vector( 16, 16, 16 ) )
 end
 
 surface.CreateFont( "EntityNameFont", {
@@ -17,7 +20,7 @@ surface.CreateFont( "EntityHPFont", {
 } )
 
 local ICON_CONFIG = {
-    -- Обычные эффекты (> 0)
+    -- Обычные эффекты 
     { func = "GetDSE_blood",       icon = "blood-drop.png" },
     { func = "GetDSE_stunning",    icon = "unhealthy.png" },
     { func = "GetDSE_fire",        icon = "fire.png" },
@@ -49,7 +52,7 @@ local function StatusIconDraw( self )
     local transpert = self:GetDSE_NameDisplay() and 0 or 255
 
     local pos = self:GetPos() + Vector( self:GetDSE_x_Position(), self:GetDSE_z_Position(), 90 + self:GetDSE_y_Position() )
-    local eyeAngles = LocalPlayer():EyeAngles()
+    local eyeAngles = pl:EyeAngles()
     local angles = Angle( 0, eyeAngles.y - 90, 90 )
 
     local sizeScale = self:GetDSE_Size() or 1
@@ -57,16 +60,11 @@ local function StatusIconDraw( self )
 
     local activeIcons = {}
 
-    -- Проходимся по нашему конфигуратору
     for _, cfg in ipairs( ICON_CONFIG ) do
-        -- Вызываем геттер (например, self["GetDSE_blood"](self) это то же самое, что self:GetDSE_blood())
         local val = self[ cfg.func ]( self ) or 0
-
         if val > 0 then
-            -- Выбираем иконку (если есть специальная для плюса, берем её)
             local iconPath = cfg.iconPlus or cfg.icon
 
-            -- Формируем значение для отображения
             local displayValue = val
             if cfg.staticValue then
                 displayValue = cfg.staticValue
@@ -77,10 +75,8 @@ local function StatusIconDraw( self )
             table.insert( activeIcons, { path = iconPath, value = displayValue } )
 
         elseif val < 0 then
-            -- Отрицательные значения нас интересуют только у модификаторов
             if cfg.iconMinus or cfg.showPlus then
                 local iconPath = cfg.iconMinus or cfg.icon
-                -- При отрицательном значении lua сама подставит минус (например "-2")
                 table.insert( activeIcons, { path = iconPath, value = val } )
             end
         end
@@ -164,12 +160,18 @@ local function StatusIconDraw( self )
     cam.End3D2D()
 end
 
+
+
 function ENT:Draw()
     StatusIconDraw( self )
+    local wep = LocalPlayer():GetActiveWeapon()
     local col = self:GetDSE_TopColor()
     render.SetColorModulation( col.x, col.y, col.z )
     local hasParent = IsValid( self:GetParent() )
-    if LocalPlayer():GetActiveWeapon():GetClass() == "gmod_tool" or LocalPlayer():GetActiveWeapon():GetClass() == "weapon_physgun" then
-        self:DrawModel()
+    if IsValid( wep ) then
+        local class = wep:GetClass()
+        if class == "gmod_tool" or class == "weapon_physgun" then
+            self:DrawModel()
+        end
     end
 end
